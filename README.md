@@ -40,6 +40,10 @@
 - **Current Limitations:**  
   - Only one invoice can be uploaded at a time.
   - After each upload, the page must be refreshed manually to allow another upload.
+  - PDF Parsing Limitations:
+    - If the PDF is text-based, it can be parsed normally.
+    - If the PDF is a scanned image, it currently cannot be parsed because it requires additional dependencies (pdfjs-dist, node-canvas) along with the “Desktop -      development with C++” workload, which is essential for compiling native modules like node-canvas.
+    - Due to limited computer configuration and slow performance, this issue is still under investigation.
 
 - **Future Improvements:**  
   - Support multiple invoice uploads in a single session.
@@ -72,7 +76,31 @@ This project implements a conversational interface where company admins can uplo
    ```bash
    npm install
 
+### Sample Screenshots
+Below are three example screenshots illustrating different states of the system:
 
+No Invoices Uploaded
+
+The page shows “No invoice data available. Please upload an invoice, one at a time.”
+A placeholder icon and a brief instruction are displayed to guide the user.
+Invoice Uploaded
+
+The page now displays a table with extracted invoice information, including Customer Name, Vendor Name, Invoice Number, Invoice Date, and Due Date.
+A JSON snippet below shows the raw extracted data.
+Duplicate Invoice Detected
+
+If the same invoice is uploaded again, the system detects it as a duplicate and returns a message stating that the invoice already exists.
+
+### Token Usage Tracking (Bonus)
+
+The system tracks the number of tokens used (both input and output) for each processed invoice, and calculates the average cost per invoice. This helps in understanding the cost efficiency of invoice processing.
+
+Below is an example screenshot illustrating this feature:
+
+> **Explanation:**  
+> This screenshot demonstrates the token usage tracking feature. It displays the number of input tokens used for processing the invoice data, the output tokens generated in the AI response, and the corresponding cost. This information is aggregated to calculate the average processing cost per invoice.
+
+---
 # 发票处理与 AI 对话系统
 
 ## 1. 项目要求 ✅
@@ -121,6 +149,11 @@ This project implements a conversational interface where company admins can uplo
 ### 后续改进计划
 - 支持一次上传多张发票。
 - 优化上传流程，避免每次上传后必须手动刷新页面（视时间及需求而定）。
+- PDF 解析限制：
+  - 如果 PDF 为文字格式，则可以正常解析。
+  - 如果 PDF 为扫描的图片，目前无法解析，因为需要安装额外依赖（pdfjs-dist、node-canvas）以及必须安装 “Desktop development with C++” 工作负载，以编译 node-canvas 等依赖的原生模块。
+  - 由于电脑配置不足且运行较为缓慢，此问题仍在寻找解决方案中。
+
 
 ---
 
@@ -145,5 +178,27 @@ This project implements a conversational interface where company admins can uplo
 
 #### 安装依赖
 在项目根目录下运行：
-```bash
-npm install
+
+### 示例截图
+以下是三个示例截图，展示了系统的不同状态：
+
+未上传发票
+
+页面显示“没有可用的发票数据。请一次上传一张发票。”
+
+显示占位符图标和简短说明以指导用户。
+发票已上传
+
+页面现在显示一个表格，其中包含提取的发票信息，包括客户名称、供应商名称、发票编号、发票日期和到期日。
+下面的 JSON 片段显示了原始提取的数据。
+检测到重复发票
+
+如果再次上传同一张发票，系统会将其检测为重复发票并返回一条消息，说明发票已存在。
+
+### Token 用量追踪（Bonus）
+
+系统会跟踪每次处理发票所使用的输入和输出 token 数量，并计算每张发票的平均处理成本，从而帮助我们了解发票处理的成本效率。
+
+下图展示了该功能的示例界面：
+> **说明：**  
+> 该截图展示了 Token 用量追踪功能。图中显示了处理发票数据时使用的输入 token 数量、生成 AI 响应时的输出 token 数量，以及对应的费用信息。系统会将这些数据汇总，用以计算单张发票的平均成本。
