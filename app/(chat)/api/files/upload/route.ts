@@ -1,9 +1,43 @@
+﻿import { createRequire } from 'module';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
-import { createWorker } from 'tesseract.js';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
-import { PDFDocument } from 'pdf-lib';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+const require = createRequire(import.meta.url);
+const Poppler = require('pdf-poppler');
+
+// Attempt to get the worker script path for Tesseract.js
+let workerPath: string;
+try {
+  workerPath = require.resolve('tesseract.js/src/worker/worker-script/node/index.js');
+  console.log("Using worker path:", workerPath);
+} catch (err) {
+  console.warn("Default worker path not found via require.resolve:", err);
+  // Try to manually construct the path
+  const manualPath = path.join(process.cwd(), 'node_modules', 'tesseract.js', 'src', 'worker', 'worker-script', 'node', 'index.js');
+  if (fs.existsSync(manualPath)) {
+    workerPath = manualPath;
+    console.log("Using manually resolved worker path:", workerPath);
+  } else {
+    // Finally, use the fallback dist version
+    workerPath = require.resolve('tesseract.js/dist/worker.min.js');
+    console.log("Using fallback worker path:", workerPath);
+  }
+}
+
+// Get the path for the Tesseract.js core wasm file
+let corePath: string;
+try {
+  corePath = require.resolve('tesseract.js-core/tesseract-core.wasm.js');
+  console.log("Using corePath:", corePath);
+} catch (err) {
+  console.error("Failed to resolve corePath for tesseract.js-core", err);
+  throw err;
+}
 
 // Schema validation for the uploaded file
 const FileSchema = z.object({
@@ -21,42 +55,11 @@ const FileSchema = z.object({
     ),
 });
 
-// Debug helper: log all resource keys of a page
-function logPageResources(page) {
-  const resources = page.node.get('Resources');
-  if (resources) {
-    console.log('Resources keys:', resources.keys());
-  } else {
-    console.log('No Resources found on page.');
-  }
-}
-
-// A simple helper to extract the first image from a PDF page
-function extractImageFromPage(page, pdfDoc) {
-  const resources = page.node.get('Resources');
-  if (!resources) return null;
-  const xObject = resources.get('XObject');
-  if (!xObject) return null;
-  const keys = xObject.keys();
-  for (const key of keys) {
-    const xObjectRef = xObject.get(key);
-    const xObjectObj = pdfDoc.context.lookup(xObjectRef);
-    if (
-      xObjectObj &&
-      xObjectObj.dict &&
-      xObjectObj.dict.get('Subtype')?.name === 'Image'
-    ) {
-      return Buffer.from(xObjectObj.getContents());
-    }
-  }
-  return null;
-}
-
 export async function GET() {
   return NextResponse.json({ message: 'API route exists' });
 }
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -64,6 +67,7 @@ export async function POST(request) {
   if (!request.body) {
     return new Response('Request body is empty', { status: 400 });
   }
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as Blob;
@@ -85,45 +89,66 @@ export async function POST(request) {
 
     if (file.type === 'application/pdf') {
       try {
-        // First, try extracting text using pdf-parse
+        // 1. Try to extract text from the PDF using pdf-parse
         const data = await pdf(finalBuffer);
         extractedText = data.text;
         console.log('Extracted text from PDF:', extractedText.substring(0, 300));
 
-        // If no text is detected, assume the PDF is scanned and extract images using pdf-lib
+        // 2. If no text is detected, assume the PDF might be a scanned document,
+        // then convert it to an image using pdf-poppler for OCR
         if (!extractedText.trim()) {
-          console.log('No text detected. Attempting to extract images with pdf-lib...');
-          const pdfDoc = await PDFDocument.load(finalBuffer);
-          const pages = pdfDoc.getPages();
-          let ocrResult = '';
+          console.log('No text detected. Converting PDF to image using pdf-poppler for OCR...');
 
-          // Create the Tesseract worker using a manually specified workerPath
-          // (This is the recommendation by Balearica)
-          const worker = await createWorker(
-            "eng",
-            1,
-            {
-              workerPath: "./node_modules/tesseract.js/src/worker-script/node/index.js",
-              logger: (m) => console.log("Tesseract:", m),
-            }
-          );
+          // Write the PDF Buffer to a temporary file
+          const tempPdfPath = path.join(os.tmpdir(), `${Date.now()}-temp.pdf`);
+          fs.writeFileSync(tempPdfPath, finalBuffer);
 
-          // Loop through each page
-          for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            // Log resources for debugging purposes
-            logPageResources(page);
-            const imageBuffer = extractImageFromPage(page, pdfDoc);
-            if (imageBuffer) {
-              console.log(`Performing OCR on image from page ${i + 1}...`);
-              const { data: { text } } = await worker.recognize(imageBuffer);
-              ocrResult += "\n" + text;
-            } else {
-              console.log(`No image found on page ${i + 1}.`);
-            }
+          // Set the output directory (in the temporary directory)
+          const outputDir = path.join(os.tmpdir(), 'pdf-ocr-output');
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
           }
+          const pdfBaseName = path.basename(tempPdfPath, path.extname(tempPdfPath));
+          const opts = {
+            format: 'png',
+            out_dir: outputDir,
+            out_prefix: pdfBaseName,
+            page: 1,
+          };
+
+          await Poppler.convert(tempPdfPath, opts);
+
+          // pdf-poppler by default generates a file named <prefix>-1.png
+          const imagePath = path.join(outputDir, `${pdfBaseName}-1.png`);
+          if (!fs.existsSync(imagePath)) {
+            console.error("Converted file not found:", imagePath);
+            return NextResponse.json(
+              { error: "Failed to convert PDF to image." },
+              { status: 500 }
+            );
+          }
+          const imageBuffer = fs.readFileSync(imagePath);
+          console.log(`Converted image Buffer Length: ${imageBuffer.length}`);
+          if (imageBuffer.length === 0) {
+            console.warn("Converted image buffer is empty.");
+            return NextResponse.json(
+              { error: "PDF to image conversion produced an empty result." },
+              { status: 500 }
+            );
+          }
+
+          // Dynamically import and load Tesseract.js with language parameter along with workerPath and corePath
+          const { createWorker } = await import('tesseract.js');
+          const worker = await createWorker('eng', { workerPath, corePath });
+          await worker.load();
+          const { data: { text } } = await worker.recognize(imageBuffer);
+          console.log("OCR Extracted Text:", text);
           await worker.terminate();
-          extractedText = ocrResult;
+          extractedText = text;
+
+          // Clean up temporary files
+          fs.unlinkSync(tempPdfPath);
+          fs.unlinkSync(imagePath);
         }
       } catch (parseError: any) {
         console.error("PDF parsing error:", parseError);
@@ -133,16 +158,11 @@ export async function POST(request) {
         );
       }
     } else {
-      // For image files, perform OCR directly
+      // For JPEG and PNG images, perform OCR directly
       try {
-        const worker = await createWorker(
-          "eng",
-          1,
-          {
-            workerPath: "./node_modules/tesseract.js/src/worker-script/node/index.js",
-            logger: (m) => console.log("Tesseract:", m),
-          }
-        );
+        const { createWorker } = await import('tesseract.js');
+        const worker = await createWorker('eng', { workerPath, corePath });
+        await worker.load();
         const { data: { text } } = await worker.recognize(finalBuffer);
         extractedText = text;
         await worker.terminate();
@@ -155,7 +175,7 @@ export async function POST(request) {
       }
     }
 
-    // Check for rejection keywords
+    // Check if the extracted text contains any disallowed keywords
     const rejectionKeywords = ["receipt", "account statement"];
     if (rejectionKeywords.some((keyword) => extractedText.toLowerCase().includes(keyword))) {
       return NextResponse.json(

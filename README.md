@@ -40,10 +40,6 @@
 - **Current Limitations:**  
   - Only one invoice can be uploaded at a time.
   - After each upload, the page must be refreshed manually to allow another upload.
-  - PDF Parsing Limitations:
-    - If the PDF is text-based, it can be parsed normally.
-    - If the PDF is a scanned image, it currently cannot be parsed because it requires additional dependencies (pdfjs-dist, node-canvas) along with the “Desktop -      development with C++” workload, which is essential for compiling native modules like node-canvas.
-    - Due to limited computer configuration and slow performance, this issue is still under investigation.
 
 - **Future Improvements:**  
   - Support multiple invoice uploads in a single session.
@@ -156,11 +152,6 @@ Below is an example screenshot illustrating this feature:
 ### 后续改进计划
 - 支持一次上传多张发票。
 - 优化上传流程，避免每次上传后必须手动刷新页面（视时间及需求而定）。
-- PDF 解析限制：
-  - 如果 PDF 为文字格式，则可以正常解析。
-  - 如果 PDF 为扫描的图片，目前无法解析，因为需要安装额外依赖（pdfjs-dist、node-canvas）以及必须安装 “Desktop development with C++” 工作负载，以编译 node-canvas 等依赖的原生模块。
-  - 由于电脑配置不足且运行较为缓慢，此问题仍在寻找解决方案中。
-
 
 ---
 
