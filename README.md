@@ -79,19 +79,26 @@ This project implements a conversational interface where company admins can uplo
 ### Sample Screenshots
 Below are three example screenshots illustrating different states of the system:
 
-No Invoices Uploaded
+No Invoices Uploaded![image](https://github.com/user-attachments/assets/0fa4afe1-3bc5-417c-a4f7-4aa4e37adb00)
+
 
 The page shows “No invoice data available. Please upload an invoice, one at a time.”
 A placeholder icon and a brief instruction are displayed to guide the user.
-Invoice Uploaded
+
+Invoice Uploaded![image](https://github.com/user-attachments/assets/c4fc95ac-ecb6-47d8-9aa4-e76b16f967ee)
+
 
 The page now displays a table with extracted invoice information, including Customer Name, Vendor Name, Invoice Number, Invoice Date, and Due Date.
 A JSON snippet below shows the raw extracted data.
-Duplicate Invoice Detected
+
+Duplicate Invoice Detected![image](https://github.com/user-attachments/assets/7ec3236f-b8ea-4bf9-afd2-c7a1457942b7)
+
 
 If the same invoice is uploaded again, the system detects it as a duplicate and returns a message stating that the invoice already exists.
 
 ### Token Usage Tracking (Bonus)
+![image](https://github.com/user-attachments/assets/180177cf-7bc8-48f9-9f9a-828ea7a3c80b)
+
 
 The system tracks the number of tokens used (both input and output) for each processed invoice, and calculates the average cost per invoice. This helps in understanding the cost efficiency of invoice processing.
 
@@ -182,20 +189,26 @@ Below is an example screenshot illustrating this feature:
 ### 示例截图
 以下是三个示例截图，展示了系统的不同状态：
 
-未上传发票
+未上传发票![image](https://github.com/user-attachments/assets/894edf83-cc2f-40a1-afbe-ea83edf7b001)
+
 
 页面显示“没有可用的发票数据。请一次上传一张发票。”
 
 显示占位符图标和简短说明以指导用户。
-发票已上传
+
+发票已上传 ![image](https://github.com/user-attachments/assets/a0a741a2-110a-48a2-9fcf-9ddd6d1e3658)
+
 
 页面现在显示一个表格，其中包含提取的发票信息，包括客户名称、供应商名称、发票编号、发票日期和到期日。
 下面的 JSON 片段显示了原始提取的数据。
-检测到重复发票
+
+检测到重复发票 ![image](https://github.com/user-attachments/assets/4b06bca0-0796-456a-baf5-b2d9ffb9b158)
+
 
 如果再次上传同一张发票，系统会将其检测为重复发票并返回一条消息，说明发票已存在。
 
 ### Token 用量追踪（Bonus）
+![image](https://github.com/user-attachments/assets/b1baf8c4-3d50-4718-9f6d-b7bce3be75e8)
 
 系统会跟踪每次处理发票所使用的输入和输出 token 数量，并计算每张发票的平均处理成本，从而帮助我们了解发票处理的成本效率。
 
