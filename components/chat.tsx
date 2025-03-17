@@ -1,20 +1,20 @@
+// components/chat.tsx
 'use client';
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
 import { fetcher, generateUUID } from '@/lib/utils';
-
 import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useBlockSelector } from '@/hooks/use-block';
 import { toast } from 'sonner';
+import { InvoiceTable } from '@/components/InvoiceTable';
 
 export function Chat({
   id,
@@ -41,7 +41,7 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, selectedChatModel: selectedChatModel },
+    body: { id, selectedChatModel },
     initialMessages,
     experimental_throttle: 100,
     sendExtraMessageFields: true,
@@ -50,28 +50,30 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
-      toast.error('An error occured, please try again!');
+      toast.error('An error occurred, please try again!');
     },
   });
 
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher,
-  );
-
+  const { data: votes } = useSWR<Array<Vote>>(`/api/vote?chatId=${id}`, fetcher);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
   return (
     <>
-      <div className="flex flex-col min-w-0 h-dvh bg-background">
-        <ChatHeader
+      <div className="flex flex-col min-w-0 bg-background">
+        {/* Invoice table display area */}
+        <div className="mx-auto w-full md:max-w-3xl p-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold mb-2">Invoice</h2>
+          <InvoiceTable />
+        </div>
+
+        {/* Chat component section */}
+        {/* <ChatHeader
           chatId={id}
           selectedModelId={selectedChatModel}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={false}
-        />
-
+        /> */}
         <Messages
           chatId={id}
           isLoading={isLoading}
@@ -82,8 +84,16 @@ export function Chat({
           isReadonly={false}
           isBlockVisible={isBlockVisible}
         />
-
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+          {/* <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                handlePdfUpload(e.target.files[0]);
+              }
+            }}
+          /> */}
           <MultimodalInput
             chatId={id}
             input={input}
@@ -99,7 +109,6 @@ export function Chat({
           />
         </form>
       </div>
-
       <Block
         chatId={id}
         input={input}

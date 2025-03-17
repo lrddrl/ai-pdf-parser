@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\app",
+    "\\app\\(chat)",
+    "\\app\\(chat)\\api",
+    "\\app\\(chat)\\api\\chat",
+    "\\app\\(chat)\\api\\files",
+    "\\app\\(chat)\\api\\files\\upload"
+  ],
+  "SelectedNode": "\\app\\(chat)\\api\\files\\upload\\route.ts",
+  "PreviewInSolutionExplorer": false
+}

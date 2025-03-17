@@ -1,10 +1,10 @@
 'use client';
 
 import type {
-  Attachment,
   ChatRequestOptions,
   CreateMessage,
   Message,
+  Attachment as OriginalAttachment,
 } from 'ai';
 import cx from 'classnames';
 import type React from 'react';
@@ -30,6 +30,11 @@ import { Textarea } from './ui/textarea';
 import { SuggestedActions } from './suggested-actions';
 import equal from 'fast-deep-equal';
 
+// Extend the Attachment type by adding the extractedText property
+export interface ExtendedAttachment extends OriginalAttachment {
+  extractedText?: string;
+}
+
 function PureMultimodalInput({
   chatId,
   input,
@@ -46,11 +51,13 @@ function PureMultimodalInput({
 }: {
   chatId: string;
   input: string;
-  setInput: (value: string) => void;
+  // Modify setInput type to support functional updates
+  setInput: Dispatch<SetStateAction<string>>;
   isLoading: boolean;
   stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  // Use the extended Attachment type
+  attachments: Array<ExtendedAttachment>;
+  setAttachments: Dispatch<SetStateAction<Array<ExtendedAttachment>>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   append: (
@@ -88,10 +95,7 @@ function PureMultimodalInput({
     }
   };
 
-  const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-    'input',
-    '',
-  );
+  const [localStorageInput, setLocalStorageInput] = useLocalStorage('input', '');
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -120,6 +124,19 @@ function PureMultimodalInput({
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
+    // If there are attachments, append the extractedText from attachments
+    // if (attachments && attachments.length > 0) {
+    //   const allExtractedText = attachments
+    //     .map((attachment) => attachment.extractedText)
+    //     .filter((text): text is string => Boolean(text))
+    //     .join(', ');
+    //     setInput((prev) => {
+    //       const newValue = prev + "\n\nExtracted: " + allExtractedText;
+    //       console.log("Setting input to:", newValue);
+    //       return newValue;
+    //     });
+    // }
+
     handleSubmit(undefined, {
       experimental_attachments: attachments,
     });
@@ -136,6 +153,7 @@ function PureMultimodalInput({
     handleSubmit,
     setAttachments,
     setLocalStorageInput,
+    setInput,
     width,
     chatId,
   ]);
@@ -152,12 +170,13 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-        const { url, pathname, contentType } = data;
+        const { url, pathname, contentType, extractedText } = data;
 
         return {
           url,
           name: pathname,
           contentType: contentType,
+          extractedText,
         };
       }
       const { error } = await response.json();
@@ -179,7 +198,6 @@ function PureMultimodalInput({
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined,
         );
-
         setAttachments((currentAttachments) => [
           ...currentAttachments,
           ...successfullyUploadedAttachments,
@@ -279,7 +297,6 @@ export const MultimodalInput = memo(
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
-
     return true;
   },
 );

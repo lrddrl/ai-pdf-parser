@@ -11,6 +11,7 @@ import {
   type Message,
   message,
   vote,
+  invoice, // Import Invoice table from schema.ts
 } from './schema';
 import type { BlockKind } from '@/components/block';
 
@@ -254,6 +255,7 @@ export async function getSuggestionsByDocumentId({
   } catch (error) {
     console.error(
       'Failed to get suggestions by document version from database',
+      error,
     );
     throw error;
   }
@@ -301,6 +303,7 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   } catch (error) {
     console.error(
       'Failed to delete messages by id after timestamp from database',
+      error,
     );
     throw error;
   }
@@ -319,4 +322,61 @@ export async function updateChatVisiblityById({
     console.error('Failed to update chat visibility in database');
     throw error;
   }
+}
+
+/* ===== New: Invoice data storage logic ===== */
+
+// Define the Invoice data type
+export interface InvoiceData {
+  id: string; // For example, generated using crypto.randomUUID()
+  customer_name: string;
+  vendor_name: string;
+  invoice_number: string;
+  invoice_date: string; // Format "YYYY-MM-DD"
+  due_date?: string;
+  amount: string; // Passed as a string, e.g., "4.11"
+  line_items: Array<{
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+}
+
+/**
+ * Save invoice data to the database. Before inserting, check if an invoice with the same vendor_name, invoice_number, and amount already exists.
+ * @param invoiceData Invoice data object
+ */
+export async function saveInvoice(invoiceData: InvoiceData) {
+  // Duplicate check: look for records with the same vendor name, invoice number, and amount
+  const existing = await db
+    .select()
+    .from(invoice)
+    .where(
+      and(
+        eq(invoice.vendorName, invoiceData.vendor_name),
+        eq(invoice.invoiceNumber, invoiceData.invoice_number),
+        eq(invoice.amount, parseFloat(invoiceData.amount))
+      )
+    )
+    .get();
+
+  if (existing) {
+    throw new Error('Duplicate invoice detected');
+  }
+
+  // Insert new invoice data using new Date() instead of Date.now()
+  await db
+    .insert(invoice)
+    .values({
+      id: invoiceData.id,
+      customerName: invoiceData.customer_name,
+      vendorName: invoiceData.vendor_name,
+      invoiceNumber: invoiceData.invoice_number,
+      invoiceDate: invoiceData.invoice_date,
+      dueDate: invoiceData.due_date || null,
+      amount: parseFloat(invoiceData.amount),
+      lineItems: invoiceData.line_items,
+      createdAt: new Date(),
+    })
+    .run();
 }

@@ -99,5 +99,44 @@ ${currentContent}
 Improve the following spreadsheet based on the given prompt.
 
 ${currentContent}
+
 `
         : '';
+export const invoiceExtractionPrompt = (invoiceText: string, existingInvoices: any[]) => {
+  const duplicateCheckInstruction = `
+Before extracting the invoice information, please check whether the "vendor_name" and "invoice_number" from the newly uploaded invoice already exist in the following invoice data:
+${JSON.stringify(
+  existingInvoices.map(inv => ({
+    vendor_name: inv.vendorName,
+    invoice_number: inv.invoiceNumber,
+  })),
+  null,
+  2
+)}
+If any duplicates are found, set "isDuplicate" to true in the returned JSON and include a corresponding message; if there are no duplicates, set "isDuplicate" to false and proceed to extract the following fields.
+`;
+
+  return `
+You are an intelligent assistant specialized in handling invoices.
+${duplicateCheckInstruction}
+From the invoice text below, extract the following fields and return them in JSON format (please return only JSON without any additional text), in the following structure:
+\`\`\`json
+{
+  "customer_name": "...",
+  "vendor_name": "...",
+  "invoice_number": "...",
+  "invoice_date": "YYYY-MM-DD",
+  "due_date": "YYYY-MM-DD",
+  "amount": ...,
+  "line_items": [...],
+  "isDuplicate": false
+}
+\`\`\`
+Invoice text:
+=====================
+${invoiceText}
+=====================
+`;
+};
+        
+        
