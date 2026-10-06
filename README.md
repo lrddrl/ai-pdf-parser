@@ -1,5 +1,7 @@
 # ai-pdf-parser
 
+> Built on Vercel's open-source [AI Chatbot](https://github.com/vercel/ai-chatbot) template (Apache-2.0), extended with invoice extraction, validation and duplicate detection.
+
 Next.js 15 chatbot app for processing vendor invoices. Admins upload PDF or image invoices, the app uses an OpenAI or Fireworks LLM to extract structured fields (customer, vendor, invoice number, dates, amounts, line items), stores them in SQLite via Drizzle ORM, and renders an editable / sortable table. A duplicate-invoice detector flags repeat uploads from the same vendor.
 
 ## Features
